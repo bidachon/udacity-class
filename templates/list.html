@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Blogs</title>
+</head>
+<body>
+	<h1>Blogs</h1>
+<hr>
+{% for blog in blogs %}
+<div>
+	<hr>
+	<div>{{blog.title}}  {{blog.date}}</div>
+	<hr>
+	<div>{{blog.blog}}</div>
+</div>
+{% endfor %}
+</body>
