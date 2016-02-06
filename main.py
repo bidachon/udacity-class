@@ -31,10 +31,11 @@ template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True)
 
-class Blog(db.Model):
+class Post(db.Model):
 	title = db.StringProperty(required = True)
-	blog = db.TextProperty(required = True)
-	date = db.DateProperty(auto_now_add = True)
+	post = db.TextProperty(required = True)
+	created = db.DateProperty(auto_now_add = True)
+    #last_modified = db.DateProperty(auto_now = True)
 
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
@@ -50,7 +51,7 @@ class Handler(webapp2.RequestHandler):
 class MainHandler(Handler):
 
 	def get(self):
-		blogs = db.GqlQuery("select * from Blog")
+		blogs = db.GqlQuery("select * from Post")
 		self.render("list.html", blogs = blogs)
 
 class NewPostHandler(Handler):
@@ -58,7 +59,20 @@ class NewPostHandler(Handler):
 	def get(self):
 		self.write("Add your post")
 
+class ViewPostHandler(Handler):
+    def get(self, post_id):
+        key = db.Key.from_path('Post', int(post_id))
+        post = db.get(key)
+        if not post:
+            self.error(404)
+            return
+        self.render('viewpost.html')
+
+
 
 
 app = webapp2.WSGIApplication([
-    ('/', MainHandler),('/blog',MainHandler),('/newpost',NewPostHandler)], debug=True)
+    ('/', MainHandler),
+    ('/blog',MainHandler),
+    ('/blog/newpost',NewPostHandler),
+    ('/blog/([0-9]+)',ViewPostHandler)], debug=True)
