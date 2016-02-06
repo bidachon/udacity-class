@@ -9,9 +9,9 @@
 {% for blog in blogs %}
 <div>
 	<hr>
-	<div>{{blog.title}}  {{blog.date}}</div>
+	<div>{{blog.title}}  {{blog.created.strftime("%b %d, %Y")}}</div>
 	<hr>
-	<div>{{blog.blog}}</div>
+	<div>{{blog.content}}</div>
 </div>
 {% endfor %}
 </body>

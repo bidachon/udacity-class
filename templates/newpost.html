@@ -6,11 +6,12 @@
 <body>
 <form method="post">
     <label>
-        <div>title</div> <input type="text" name="title">
+        <div>title</div><input type="text" name="title" value="{{title}}">
     </label>
     <label>
-        <div>art</div><textarea name="blog"></textarea>
+        <div>art</div><textarea name="content" rows="10" cols="50">{{content}}</textarea>
     </label>
+    <br>
     <input type="submit">
     <p>{{error}}</p>
 </form>

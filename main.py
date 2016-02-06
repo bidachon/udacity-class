@@ -29,50 +29,65 @@ from google.appengine.ext import db
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
-                               autoescape = True)
+							   autoescape = True)
 
-class Post(db.Model):
+class Blog(db.Model):
 	title = db.StringProperty(required = True)
-	post = db.TextProperty(required = True)
-	created = db.DateProperty(auto_now_add = True)
-    #last_modified = db.DateProperty(auto_now = True)
+	content = db.TextProperty(required = True)
+	created = db.DateTimeProperty(auto_now_add = True)
+	#last_modified = db.DateProperty(auto_now = True)
 
 class Handler(webapp2.RequestHandler):
-    def write(self, *a, **kw):
-        self.response.out.write(*a, **kw)
+	def write(self, *a, **kw):
+		self.response.out.write(*a, **kw)
 
-    def render_str(self, template, **params):
-        t = jinja_env.get_template(template)
-        return t.render(params)
+	def render_str(self, template, **params):
+		t = jinja_env.get_template(template)
+		return t.render(params)
 
-    def render(self, template, **kw):
-        self.write(self.render_str(template, **kw))
+	def render(self, template, **kw):
+		self.write(self.render_str(template, **kw))
 
 class MainHandler(Handler):
 
 	def get(self):
-		blogs = db.GqlQuery("select * from Post")
-		self.render("list.html", blogs = blogs)
+		blogs = db.GqlQuery("select * from Blog")
+		self.render('list.html', blogs = blogs)
 
 class NewPostHandler(Handler):
 
 	def get(self):
-		self.write("Add your post")
+		self.render('newpost.html')
+
+	def post(self):
+		title = self.request.get('title')
+		content = self.request.get('content')
+		if (title and content):
+			p = Blog(title = title, content = content)
+			p.put()
+			self.redirect('/blog/%s' % str(p.key().id()))
+		else:
+			error = "Both title and content should be valid"
+			self.render('newpost.html',title=title,content=content,error=error)
+
 
 class ViewPostHandler(Handler):
-    def get(self, post_id):
-        key = db.Key.from_path('Post', int(post_id))
-        post = db.get(key)
-        if not post:
-            self.error(404)
-            return
-        self.render('viewpost.html')
+	def get(self, blog_id):
+		key = db.Key.from_path('Blog', int(blog_id))
+		blog = db.get(key)
+		if not blog:
+			self.error(404)
+			return
+		title = blog.title
+		content = blog.content
+		created = blog.created
+		self.render('viewpost.html',title=title, content=content, created=created)
 
 
 
 
 app = webapp2.WSGIApplication([
-    ('/', MainHandler),
-    ('/blog',MainHandler),
-    ('/blog/newpost',NewPostHandler),
-    ('/blog/([0-9]+)',ViewPostHandler)], debug=True)
+	('/', MainHandler),
+	('/blog',MainHandler),
+	('/blog/newpost',NewPostHandler),
+	('/blog/([0-9]+)',ViewPostHandler)], debug=True)
