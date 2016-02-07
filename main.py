@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 # Form page to list entries /blog
-# Form to submit new entries /newpost title, date, blog error if title or body empty
+# Form to submit new entries /blog/newpost title, date, blog error if title or body empty
 # Permalink page for entries /blog/XXXXXX with top link to /blog page
 
 import webapp2
@@ -60,7 +60,7 @@ class NewPostHandler(Handler):
 		self.render('newpost.html')
 
 	def post(self):
-		title = self.request.get('title')
+		title = self.request.get('subject')
 		content = self.request.get('content')
 		if (title and content):
 			p = Blog(title = title, content = content)
