@@ -28,6 +28,7 @@ import os
 import hashlib
 import hmac
 import jinja2
+import json
 
 from google.appengine.ext import db
 
@@ -95,6 +96,13 @@ class Blog(db.Model):
 	created = db.DateTimeProperty(auto_now_add = True)
 	#last_modified = db.DateProperty(auto_now = True)
 
+	def as_json(self):
+		time_format = '%c'
+		d = {'subject':self.title,
+		'content':self.content,
+		'created':self.created.strftime(time_format)}
+		return d
+
 class Handler(webapp2.RequestHandler):
 	def write(self, *a, **kw):
 		self.response.out.write(*a, **kw)
@@ -102,6 +110,11 @@ class Handler(webapp2.RequestHandler):
 	def render_str(self, template, **params):
 		t = jinja_env.get_template(template)
 		return t.render(params)
+
+	def render_json(self,d):
+		json_text = json.dumps(d)
+		self.response.headers['content-type'] = 'application/json; charset=UTF-8'
+		self.write(json_text)
 
 	def render(self, template, **kw):
 		self.write(self.render_str(template, **kw))
@@ -120,7 +133,10 @@ class MainHandler(Handler):
 
 	def get(self):
 		blogs = db.GqlQuery("select * from Blog")
-		self.render('list.html', blogs = blogs)
+		if self.request.url.endswith('.json'):
+			self.render_json([b.as_json() for b in blogs])
+		else:
+			self.render('list.html', blogs = blogs)
 
 class NewPostHandler(Handler):
 
@@ -149,7 +165,10 @@ class ViewPostHandler(Handler):
 		title = blog.title
 		content = blog.content
 		created = blog.created
-		self.render('viewpost.html',title=title, content=content, created=created)
+		if self.request.url.endswith('.json'):
+			self.render_json(blog.as_json())
+		else:
+			self.render('viewpost.html',title=title, content=content, created=created)
 
 USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 def valid_username(username):
@@ -169,7 +188,7 @@ class WelcomeHandler(Handler):
 		if uid:
 			user = User.by_id(int(uid))
 		if not uid or not user:
-			self.redirect('/signup')
+			self.redirect('/blog/signup')
 		else:
 			username = user.name
 			self.write("Hello %s" %username)
@@ -185,7 +204,7 @@ class LoginHandler(Handler):
 		u = User.login(username, password)
 		if u:
 			self.set_secure_cookie('user_id',str(u.key().id()))
-			self.redirect('/welcome')
+			self.redirect('/blog/welcome')
 		else:
 			msg = 'Invalid login'
 			self.render('login.html', error = msg)
@@ -193,7 +212,7 @@ class LoginHandler(Handler):
 class LogoutHandler(Handler):
 	def get(self):
 		self.response.headers.add_header('Set-Cookie','user_id=; Path=/')
-		self.redirect('/signup')
+		self.redirect('/blog/signup')
 
 
 class SignUpHandler(Handler):
@@ -245,19 +264,15 @@ class SignUpHandler(Handler):
 			u = User.register(username, password, email)
 			u.put()
 			self.set_secure_cookie('user_id',str(u.key().id()))
-			self.redirect('/welcome')
-
-
-
-
-
+			self.redirect('/blog/welcome')
 
 app = webapp2.WSGIApplication([
 	('/', MainHandler),
 	('/blog',MainHandler),
+	('/blog?/(?:\.json)?', MainHandler),
 	('/blog/newpost',NewPostHandler),
-	('/blog/([0-9]+)',ViewPostHandler),
-	('/signup',SignUpHandler),
-	('/login',LoginHandler),
-	('/logout',LogoutHandler),
-	('/welcome',WelcomeHandler)], debug=True)
+	('/blog/([0-9]+)/?(?:\.json)?',ViewPostHandler),
+	('/blog/signup',SignUpHandler),
+	('/blog/login',LoginHandler),
+	('/blog/logout',LogoutHandler),
+	('/blog/welcome',WelcomeHandler)], debug=True)
